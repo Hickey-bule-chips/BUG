@@ -9,7 +9,7 @@ public class PlayerController : MonoBehaviour
     
     [Header("跳跃设置")]
     [SerializeField] private float jumpForce = 10f;
-    [SerializeField] private int maxJumpCount = 2; // 二段跳
+    [SerializeField] private int maxJumpCount = 2; // 二段跳（1=单跳，2=二段跳）
     
     [Header("地面检测")]
     [SerializeField] private Transform groundCheck;
@@ -17,15 +17,17 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private LayerMask groundLayer;
     
     [Header("反向操作设置")]
-    [SerializeField] private float minTimeBeforeReverse = 3f; // 开始移动后多久触发反向
+    [SerializeField] private float minTimeBeforeReverse = 5f; // 开始移动后多久触发反向
     [SerializeField] private float maxTimeBeforeReverse = 10f;
     [SerializeField] private float minReverseDuration = 5f; // 反向持续时间
-    [SerializeField] private float maxReverseDuration = 25f;
+    [SerializeField] private float maxReverseDuration = 15f;
     
     [Header("组件引用")]
     private Rigidbody2D rb;
     private Animator animator;
     private SpriteRenderer spriteRenderer;
+    private PlayerAttack playerAttack; // 攻击组件
+    private Camera mainCamera; // 主摄像机
     
     // 状态变量
     private float horizontalInput;
@@ -46,6 +48,8 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        playerAttack = GetComponent<PlayerAttack>();
+        mainCamera = Camera.main;
         
         // 如果没有设置地面检测点，创建一个
         if (groundCheck == null)
@@ -73,6 +77,9 @@ public class PlayerController : MonoBehaviour
         {
             Jump();
         }
+        
+        // 处理攻击（鼠标输入）
+        HandleMouseAttack();
         
         // 更新动画
         UpdateAnimation();
@@ -198,6 +205,54 @@ public class PlayerController : MonoBehaviour
         }
     }
     
+    /// <summary>
+    /// 处理鼠标攻击输入
+    /// </summary>
+    private void HandleMouseAttack()
+    {
+        // 检查是否有攻击组件
+        if (playerAttack == null)
+            return;
+        
+        // 鼠标左键 - 发射笔芯
+        if (Input.GetMouseButton(0))
+        {
+            Vector2 direction = GetMouseDirection();
+            if (direction != Vector2.zero)
+            {
+                playerAttack.FirePenCore(direction);
+            }
+        }
+        
+        // 鼠标右键 - 发射墨水
+        if (Input.GetMouseButtonDown(1))
+        {
+            Vector2 direction = GetMouseDirection();
+            if (direction != Vector2.zero)
+            {
+                playerAttack.FireInk(direction);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 获取鼠标方向（从玩家到鼠标位置的归一化向量）
+    /// </summary>
+    private Vector2 GetMouseDirection()
+    {
+        if (mainCamera == null)
+            return Vector2.zero;
+        
+        // 获取鼠标在世界坐标中的位置
+        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
+        mouseWorldPos.z = 0;
+        
+        // 计算从玩家到鼠标的方向向量
+        Vector2 direction = (mouseWorldPos - transform.position).normalized;
+        
+        return direction;
+    }
+    
     // 在编辑器中显示地面检测范围
     private void OnDrawGizmosSelected()
     {
@@ -205,6 +260,17 @@ public class PlayerController : MonoBehaviour
         {
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+        }
+        
+        // 显示鼠标方向（仅在运行时）
+        if (Application.isPlaying && mainCamera != null)
+        {
+            Vector2 mouseDir = GetMouseDirection();
+            if (mouseDir != Vector2.zero)
+            {
+                Gizmos.color = Color.green;
+                Gizmos.DrawLine(transform.position, transform.position + (Vector3)(mouseDir * 2f));
+            }
         }
     }
 }
