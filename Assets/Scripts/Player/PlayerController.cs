@@ -27,12 +27,22 @@ public class PlayerController : MonoBehaviour
     private Animator animator;
     private SpriteRenderer spriteRenderer;
     private PlayerAttack playerAttack; // 攻击组件
-    private Camera mainCamera; // 主摄像机
     
     // 状态变量
     private float horizontalInput;
     private bool isGrounded;
     private int jumpCount;
+    
+    // 攻击状态变量
+    private bool isAttackingInk = false;
+    private float inkAttackDuration = 0.5f; // 墨水攻击动画持续时间
+    private float inkAttackTimer = 0f;
+    
+    // 笔芯攻击控制变量
+    private bool isPenCoreAttackActive = false; // 是否正在播放笔芯攻击动画
+    private bool canFirePenCore = false; // 是否可以发射笔芯
+    private float lastFireTime = 0f; // 上次发射时间
+    private float fireCooldown = 0.1f; // 发射冷却时间（防止过于频繁）
     
     // 反向操作变量
     private bool isReversed = false; // 当前是否反向
@@ -49,7 +59,6 @@ public class PlayerController : MonoBehaviour
         animator = GetComponent<Animator>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         playerAttack = GetComponent<PlayerAttack>();
-        mainCamera = Camera.main;
         
         // 如果没有设置地面检测点，创建一个
         if (groundCheck == null)
@@ -81,6 +90,9 @@ public class PlayerController : MonoBehaviour
         // 处理攻击（鼠标输入）
         HandleMouseAttack();
         
+        // 更新攻击状态计时器
+        UpdateAttackStates();
+        
         // 更新动画
         UpdateAnimation();
     }
@@ -109,6 +121,10 @@ public class PlayerController : MonoBehaviour
     
     private void Move()
     {
+        // 检查必要组件
+        if (rb == null)
+            return;
+        
         // 计算实际移动方向（如果反向则取反）
         float actualInput = isReversed ? -horizontalInput : horizontalInput;
         
@@ -116,13 +132,16 @@ public class PlayerController : MonoBehaviour
         rb.velocity = new Vector2(actualInput * moveSpeed, rb.velocity.y);
         
         // 角色翻转（根据实际移动方向）
-        if (actualInput > 0)
+        if (spriteRenderer != null)
         {
-            spriteRenderer.flipX = false;
-        }
-        else if (actualInput < 0)
-        {
-            spriteRenderer.flipX = true;
+            if (actualInput > 0)
+            {
+                spriteRenderer.flipX = false;
+            }
+            else if (actualInput < 0)
+            {
+                spriteRenderer.flipX = true;
+            }
         }
     }
     
@@ -165,6 +184,10 @@ public class PlayerController : MonoBehaviour
     
     private void Jump()
     {
+        // 检查必要组件
+        if (rb == null)
+            return;
+        
         // 如果在地面上，重置跳跃次数
         if (isGrounded)
         {
@@ -193,6 +216,78 @@ public class PlayerController : MonoBehaviour
         }
     }
     
+    /// <summary>
+    /// 更新攻击状态计时器
+    /// </summary>
+    private void UpdateAttackStates()
+    {
+        // 更新墨水攻击状态计时器
+        if (isAttackingInk)
+        {
+            inkAttackTimer -= Time.deltaTime;
+            if (inkAttackTimer <= 0)
+            {
+                isAttackingInk = false;
+            }
+        }
+        
+        // 检测笔芯攻击动画状态
+        CheckPenCoreAttackAnimation();
+    }
+    
+    /// <summary>
+    /// 检测笔芯攻击动画状态，控制发射时机
+    /// </summary>
+    private void CheckPenCoreAttackAnimation()
+    {
+        if (animator == null) return;
+        
+        // 检查是否正在播放笔芯攻击动画
+        bool currentlyAttacking = animator.GetBool("IsAttackingPenCore");
+        
+        // 如果开始攻击动画
+        if (currentlyAttacking && !isPenCoreAttackActive)
+        {
+            isPenCoreAttackActive = true;
+            canFirePenCore = false;
+        }
+        // 如果停止攻击动画
+        else if (!currentlyAttacking && isPenCoreAttackActive)
+        {
+            isPenCoreAttackActive = false;
+            canFirePenCore = false;
+        }
+        
+        // 如果正在播放攻击动画
+        if (isPenCoreAttackActive)
+        {
+            // 获取当前动画的播放进度
+            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+            
+            // 检查是否播放到指定进度（50%的进度）
+            if (stateInfo.IsName("PenCoreAttack") && stateInfo.normalizedTime >= 0.5f)
+            {
+                canFirePenCore = true;
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 动画事件：允许发射笔芯（在动画的指定帧调用）
+    /// </summary>
+    public void AllowPenCoreFire()
+    {
+        canFirePenCore = true;
+    }
+    
+    /// <summary>
+    /// 动画事件：重置笔芯发射状态（在动画结束时调用）
+    /// </summary>
+    public void ResetPenCoreFire()
+    {
+        canFirePenCore = false;
+    }
+    
     private void UpdateAnimation()
     {
         // 如果有Animator组件，更新动画参数
@@ -200,8 +295,18 @@ public class PlayerController : MonoBehaviour
         {
             animator.SetFloat("Speed", Mathf.Abs(horizontalInput));
             animator.SetBool("IsGrounded", isGrounded);
-            animator.SetFloat("VelocityY", rb.velocity.y);
+            
+            // 检查rb是否为空再设置VelocityY
+            if (rb != null)
+            {
+                animator.SetFloat("VelocityY", rb.velocity.y);
+            }
+            
             animator.SetBool("IsReversed", isReversed); // 可用于反向时的特殊动画效果
+            
+            // 攻击动画状态
+            animator.SetBool("IsAttackingPenCore", Input.GetMouseButton(0)); // 左键按住射击笔芯攻击状态
+            animator.SetBool("IsAttackingInk", isAttackingInk); // 右键射击墨水攻击状态
         }
     }
     
@@ -214,44 +319,35 @@ public class PlayerController : MonoBehaviour
         if (playerAttack == null)
             return;
         
-        // 鼠标左键 - 发射笔芯
+        // 鼠标左键 - 发射笔芯（按住持续发射，但需要等待动画时机）
         if (Input.GetMouseButton(0))
         {
-            Vector2 direction = GetMouseDirection();
-            if (direction != Vector2.zero)
+            // 检查是否可以发射（动画时机 + 冷却时间）
+            if (canFirePenCore && Time.time - lastFireTime >= fireCooldown)
             {
-                playerAttack.FirePenCore(direction);
+                Vector2 direction = playerAttack.GetMouseDirection();
+                if (direction != Vector2.zero)
+                {
+                    playerAttack.FirePenCore(direction);
+                    lastFireTime = Time.time; // 更新上次发射时间
+                }
             }
         }
         
         // 鼠标右键 - 发射墨水
         if (Input.GetMouseButtonDown(1))
         {
-            Vector2 direction = GetMouseDirection();
+            Vector2 direction = playerAttack.GetMouseDirection();
             if (direction != Vector2.zero)
             {
                 playerAttack.FireInk(direction);
+                // 触发墨水攻击动画状态
+                isAttackingInk = true;
+                inkAttackTimer = inkAttackDuration;
             }
         }
     }
     
-    /// <summary>
-    /// 获取鼠标方向（从玩家到鼠标位置的归一化向量）
-    /// </summary>
-    private Vector2 GetMouseDirection()
-    {
-        if (mainCamera == null)
-            return Vector2.zero;
-        
-        // 获取鼠标在世界坐标中的位置
-        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
-        mouseWorldPos.z = 0;
-        
-        // 计算从玩家到鼠标的方向向量
-        Vector2 direction = (mouseWorldPos - transform.position).normalized;
-        
-        return direction;
-    }
     
     // 在编辑器中显示地面检测范围
     private void OnDrawGizmosSelected()
@@ -263,9 +359,9 @@ public class PlayerController : MonoBehaviour
         }
         
         // 显示鼠标方向（仅在运行时）
-        if (Application.isPlaying && mainCamera != null)
+        if (Application.isPlaying && playerAttack != null)
         {
-            Vector2 mouseDir = GetMouseDirection();
+            Vector2 mouseDir = playerAttack.GetMouseDirection();
             if (mouseDir != Vector2.zero)
             {
                 Gizmos.color = Color.green;

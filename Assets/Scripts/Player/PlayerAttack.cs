@@ -245,6 +245,24 @@ public class PlayerAttack : MonoBehaviour
         return 1f - (inkTimer / inkCooldown);
     }
     
+    /// <summary>
+    /// 获取鼠标方向（从玩家到鼠标位置的归一化向量）
+    /// </summary>
+    public Vector2 GetMouseDirection()
+    {
+        if (mainCamera == null)
+            return Vector2.zero;
+        
+        // 获取鼠标在世界坐标中的位置
+        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
+        mouseWorldPos.z = 0;
+        
+        // 计算从玩家到鼠标的方向向量
+        Vector2 direction = (mouseWorldPos - transform.position).normalized;
+        
+        return direction;
+    }
+    
     // 在编辑器中显示发射点
     private void OnDrawGizmosSelected()
     {
@@ -256,10 +274,11 @@ public class PlayerAttack : MonoBehaviour
             // 绘制一条指向鼠标的线（仅在运行时）
             if (Application.isPlaying && mainCamera != null)
             {
-                Vector3 mousePos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
-                mousePos.z = 0;
-                Vector2 direction = (mousePos - firePoint.position).normalized;
-                Gizmos.DrawLine(firePoint.position, firePoint.position + (Vector3)(direction * 2f));
+                Vector2 direction = GetMouseDirection();
+                if (direction != Vector2.zero)
+                {
+                    Gizmos.DrawLine(firePoint.position, firePoint.position + (Vector3)(direction * 2f));
+                }
             }
         }
     }

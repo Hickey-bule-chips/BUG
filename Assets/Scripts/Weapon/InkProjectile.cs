@@ -46,6 +46,14 @@ public class InkProjectile : MonoBehaviour
         // 超时归还到池
         if (timer >= lifetime)
         {
+            // 如果墨水自然消失（没有击中任何物体），在当前位置生成平台
+            if (!hasHit)
+            {
+                Debug.Log($"墨水自然消失，在位置 {transform.position} 生成平台");
+                CreatePlatform(transform.position);
+                SpawnSplashEffect();
+            }
+            
             ReturnToPool();
         }
     }
@@ -88,55 +96,58 @@ public class InkProjectile : MonoBehaviour
         if (hasHit)
             return;
         
+        Debug.Log($"墨水碰撞检测: {collision.name}, 标签: {collision.tag}");
+        
         // 忽略玩家
         if (collision.CompareTag("Player"))
+        {
+            Debug.Log("忽略玩家碰撞");
             return;
+        }
         
-        // 检测是否击中null方块（空方块）
-        if (collision.CompareTag("NullBlock") || collision.name.Contains("Null"))
-        {
-            hasHit = true;
-            
-            Debug.Log($"墨水击中空方块: {collision.name}");
-            
-            // 记录方块位置
-            Vector3 blockPosition = collision.transform.position;
-            
-            // 销毁null方块
-            Destroy(collision.gameObject);
-            
-            // 在该位置生成平台
-            CreatePlatform(blockPosition);
-            
-            // 生成飞溅特效
-            SpawnSplashEffect();
-            
-            // 归还到对象池
-            ReturnToPool();
-        }
-        // 如果击中其他物体，也销毁墨水
-        else if (collision.CompareTag("Ground") || collision.CompareTag("Wall") || collision.CompareTag("Obstacle"))
-        {
-            hasHit = true;
-            
-            // 生成飞溅特效
-            SpawnSplashEffect();
-            
-            // 归还到对象池
-            ReturnToPool();
-        }
+        // 击中任何物体都生成平台
+        hasHit = true;
+        
+        Debug.Log($"墨水击中物体: {collision.name}, 位置: {collision.transform.position}");
+        
+        // 在墨水当前位置生成平台
+        CreatePlatform(transform.position);
+        
+        // 生成飞溅特效
+        SpawnSplashEffect();
+        
+        // 归还到对象池
+        ReturnToPool();
     }
     
     private void CreatePlatform(Vector3 position)
     {
+        Debug.Log($"在墨水消失位置 {position} 创建平台");
+        
         if (platformPrefab == null)
         {
-            Debug.LogWarning("墨水平台预制体未设置！");
+            Debug.LogError("墨水平台预制体未设置！请检查PlayerAttack组件中的Ink Platform Prefab设置");
             return;
         }
         
         // 实例化平台
         GameObject platform = Instantiate(platformPrefab, position, Quaternion.identity);
+        
+        // 将平台递归设置到 Ground 层，并确保碰撞器为非触发器，便于地面检测
+        int groundLayer = LayerMask.NameToLayer("Ground");
+        if (groundLayer >= 0)
+        {
+            SetLayerRecursively(platform, groundLayer);
+        }
+        SetCollidersToNonTrigger(platform);
+        
+        if (platform == null)
+        {
+            Debug.LogError("平台实例化失败！");
+            return;
+        }
+        
+        Debug.Log($"平台创建成功: {platform.name} 在位置 {position}");
         
         // 设置平台的存在时间
         InkPlatform inkPlatform = platform.GetComponent<InkPlatform>();
@@ -146,11 +157,42 @@ public class InkProjectile : MonoBehaviour
         }
         else
         {
+            Debug.LogWarning($"平台预制体 {platformPrefab.name} 没有InkPlatform脚本，将使用定时销毁");
             // 如果没有InkPlatform脚本，直接定时销毁
             Destroy(platform, platformDuration);
         }
         
-        Debug.Log($"生成墨水平台，持续 {platformDuration} 秒");
+        Debug.Log($"墨水平台创建完成，持续 {platformDuration} 秒");
+    }
+    
+    /// <summary>
+    /// 递归设置物体及其所有子节点的层
+    /// </summary>
+    private void SetLayerRecursively(GameObject obj, int layer)
+    {
+        if (obj == null) return;
+        obj.layer = layer;
+        for (int i = 0; i < obj.transform.childCount; i++)
+        {
+            Transform child = obj.transform.GetChild(i);
+            if (child != null)
+            {
+                SetLayerRecursively(child.gameObject, layer);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 将所有 Collider2D 设为非触发器，确保可被 OverlapCircle 当作地面检测
+    /// </summary>
+    private void SetCollidersToNonTrigger(GameObject obj)
+    {
+        if (obj == null) return;
+        var colliders = obj.GetComponentsInChildren<Collider2D>(true);
+        foreach (var col in colliders)
+        {
+            col.isTrigger = false;
+        }
     }
     
     private void SpawnSplashEffect()

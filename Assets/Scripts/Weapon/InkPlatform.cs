@@ -46,7 +46,7 @@ public class InkPlatform : MonoBehaviour
         // 时间到，销毁平台
         if (timer <= 0)
         {
-            DestoryPlatform();
+            DestroyPlatform();
         }
     }
     
@@ -78,7 +78,7 @@ public class InkPlatform : MonoBehaviour
     /// <summary>
     /// 销毁平台
     /// </summary>
-    private void DestoryPlatform()
+    private void DestroyPlatform()
     {
         // 可以在这里添加销毁特效
         Debug.Log("墨水平台消失");
