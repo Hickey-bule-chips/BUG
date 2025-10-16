@@ -18,11 +18,11 @@ TagManager:
   - UI
   - Ground
   - Player
-  - 
-  - 
-  - 
-  - 
-  - 
+  - Enemy
+  - HiddenEnemy
+  - HiddenGround
+  - HiddenTrap
+  - ObstacleWall
   - 
   - 
   - 
@@ -45,4 +45,7 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: ObstacleWall
+    uniqueID: 583271389
     locked: 0

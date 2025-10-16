@@ -38,6 +38,9 @@ public class PlayerController : MonoBehaviour
     private float inkAttackDuration = 0.5f; // 墨水攻击动画持续时间
     private float inkAttackTimer = 0f;
     
+    // 死亡状态变量
+    private bool isDead = false; // 是否已死亡
+    
     // 笔芯攻击控制变量
     private bool isPenCoreAttackActive = false; // 是否正在播放笔芯攻击动画
     private bool canFirePenCore = false; // 是否可以发射笔芯
@@ -68,10 +71,20 @@ public class PlayerController : MonoBehaviour
             groundCheckObj.transform.localPosition = new Vector3(0, -0.5f, 0);
             groundCheck = groundCheckObj.transform;
         }
+        
+        // 订阅死亡事件
+        PlayerStatus playerStatus = GetComponent<PlayerStatus>();
+        if (playerStatus != null)
+        {
+            playerStatus.OnPlayerDeath += OnPlayerDeath;
+        }
     }
 
     void Update()
     {
+        // 如果玩家已死亡，不处理任何输入
+        if (isDead) return;
+        
         // 获取输入
         GetInput();
         
@@ -99,6 +112,9 @@ public class PlayerController : MonoBehaviour
     
     void FixedUpdate()
     {
+        // 如果玩家已死亡，不处理移动
+        if (isDead) return;
+        
         // 处理移动
         Move();
     }
@@ -293,6 +309,13 @@ public class PlayerController : MonoBehaviour
         // 如果有Animator组件，更新动画参数
         if (animator != null)
         {
+            // 如果死亡，只更新死亡状态
+            if (isDead)
+            {
+                animator.SetBool("IsDead", true);
+                return;
+            }
+            
             animator.SetFloat("Speed", Mathf.Abs(horizontalInput));
             animator.SetBool("IsGrounded", isGrounded);
             
@@ -367,6 +390,57 @@ public class PlayerController : MonoBehaviour
                 Gizmos.color = Color.green;
                 Gizmos.DrawLine(transform.position, transform.position + (Vector3)(mouseDir * 2f));
             }
+        }
+    }
+    
+    /// <summary>
+    /// 玩家死亡处理
+    /// </summary>
+    private void OnPlayerDeath()
+    {
+        isDead = true;
+        Debug.Log("PlayerController: 玩家死亡，停止所有输入处理");
+        
+        // 停止移动
+        if (rb != null)
+        {
+            rb.velocity = Vector2.zero;
+        }
+        
+        // 播放死亡动画
+        PlayDeathAnimation();
+    }
+    
+    /// <summary>
+    /// 播放死亡动画
+    /// </summary>
+    private void PlayDeathAnimation()
+    {
+        if (animator != null)
+        {
+            // 设置死亡动画参数
+            animator.SetBool("IsDead", true);
+            animator.SetTrigger("Death");
+            
+            Debug.Log("播放死亡动画");
+        }
+    }
+    
+    /// <summary>
+    /// 获取玩家是否死亡
+    /// </summary>
+    public bool IsDead()
+    {
+        return isDead;
+    }
+    
+    void OnDestroy()
+    {
+        // 取消订阅事件
+        PlayerStatus playerStatus = GetComponent<PlayerStatus>();
+        if (playerStatus != null)
+        {
+            playerStatus.OnPlayerDeath -= OnPlayerDeath;
         }
     }
 }
