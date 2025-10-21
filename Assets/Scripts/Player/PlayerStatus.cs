@@ -40,6 +40,8 @@ public class PlayerStatus : MonoBehaviour
         // 初始化健康值为最大值
         currentHealth = maxHealth;
         OnHealthChanged?.Invoke(currentHealth);
+        
+        Debug.Log($"PlayerStatus初始化完成，最大血量: {maxHealth}，当前血量: {currentHealth}");
     }
     
     void Update()
@@ -216,8 +218,6 @@ public class PlayerStatus : MonoBehaviour
         currentHealth -= damage;
         currentHealth = Mathf.Max(currentHealth, minHealth);
         OnHealthChanged?.Invoke(currentHealth);
-        
-        Debug.Log($"受到 {damage} 点伤害，当前健康值: {currentHealth}");
         
         // 检查是否死亡
         if (currentHealth <= minHealth)

@@ -8,7 +8,7 @@ public class PlayerAttack : MonoBehaviour
     [SerializeField] private GameObject penCorePrefab; // 笔芯预制体
     [SerializeField] private float penCoreSpeed = 15f; // 笔芯速度
     [SerializeField] private float penCoreCooldown = 0.3f; // 笔芯冷却时间
-    [SerializeField] private int penCoreDamage = 1; // 笔芯伤害
+    [SerializeField] private int penCoreDamage = 10; // 笔芯伤害
     
     [Header("墨水攻击设置")]
     [SerializeField] private GameObject inkPrefab; // 墨水预制体
@@ -149,8 +149,6 @@ public class PlayerAttack : MonoBehaviour
         
         // 重置冷却
         penCoreTimer = penCoreCooldown;
-        
-        Debug.Log($"发射笔芯！方向: {direction}");
     }
     
     /// <summary>

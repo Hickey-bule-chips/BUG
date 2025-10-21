@@ -1,0 +1,98 @@
+书本怪系统使用指南
+===================
+
+## 系统概述
+书本怪系统包含两种敌人类型：
+1. 普通书本怪 - 始终可见，layer: Enemy
+2. 隐藏书本怪 - 需要按Shift键才能看到，layer: HiddenEnemy
+
+## 文件结构
+- BookEnemyData.cs - ScriptableObject数据管理
+- BookEnemy.cs - 普通书本怪核心脚本
+- HiddenBookEnemy.cs - 隐藏书本怪脚本
+- BookEnemySpawner.cs - 生成管理器
+- PoolManager.cs - 对象池管理（已更新）
+
+## 设置步骤
+
+### 1. 创建ScriptableObject数据
+1. 在Project窗口右键 → Create → Enemy → Book Enemy Data
+2. 设置书本怪的基础属性（血量、伤害、移动速度等）
+3. 分别创建普通书本怪和隐藏书本怪的数据文件
+
+### 2. 创建书本怪预制体
+1. 创建空GameObject作为普通书本怪预制体
+2. 添加以下组件：
+   - SpriteRenderer（设置书本怪图片）
+   - CircleCollider2D（设置为Trigger）
+   - Rigidbody2D（设置Gravity Scale为0）
+   - BookEnemy脚本
+3. 设置Tag为"Enemy"
+4. 保存为预制体
+
+4. 创建空GameObject作为隐藏书本怪预制体
+5. 添加以下组件：
+   - SpriteRenderer（设置书本怪图片）
+   - CircleCollider2D（设置为Trigger）
+   - Rigidbody2D（设置Gravity Scale为0）
+   - HiddenBookEnemy脚本
+6. 设置Tag为"Enemy"
+7. 保存为预制体
+
+### 3. 设置生成管理器
+1. 在场景中创建空GameObject
+2. 添加BookEnemySpawner脚本
+3. 在Inspector中设置：
+   - 生成间隔、最大敌人数量等参数
+   - 普通书本怪和隐藏书本怪的预制体
+   - 对应的ScriptableObject数据文件
+
+### 4. 设置Layer
+1. 在Edit → Project Settings → Tags and Layers中创建新Layer：
+   - HiddenEnemy（用于隐藏书本怪）
+
+### 5. 确保对象池管理器存在
+1. 在场景中创建空GameObject
+2. 添加PoolManager脚本
+3. 确保它是单例模式（会自动设置）
+
+## 功能特性
+
+### 普通书本怪
+- 自动追随玩家
+- 接触玩家时造成伤害
+- 被笔芯攻击时减少血量
+- 血量归零时死亡并消失
+
+### 隐藏书本怪
+- 与普通书本怪功能相同
+- 额外功能：按Shift键时显示，松开时隐藏
+- 隐藏时仍能对玩家造成伤害
+- **只有在修复视觉开启时才能被笔芯攻击伤害**
+
+### 生成管理
+- 在玩家周围随机生成书本怪
+- 可设置生成间隔和最大数量
+- 支持普通书本怪和隐藏书本怪的生成比例设置
+
+## 调试功能
+- 在Scene视图中显示生成范围
+- 控制台输出详细的调试信息
+- 可以通过代码动态调整生成参数
+
+## 注意事项
+1. 确保玩家对象有"Player"标签
+2. 确保有PlayerStatus和PlayerController组件
+3. 确保笔芯攻击系统正常工作
+4. **隐藏书本怪依赖PlayerAbilityManager组件**：
+   - 隐藏书本怪会自动注册到PlayerAbilityManager
+   - 通过PlayerAbilityManager的修复视觉功能控制显示/隐藏
+   - 按Shift键激活修复视觉时显示隐藏书本怪
+   - 松开Shift键或精神值耗尽时隐藏书本怪
+5. 确保PlayerAbilityManager正确配置了隐藏敌人层
+
+## 扩展建议
+1. 可以添加更多敌人类型
+2. 可以添加不同的攻击模式
+3. 可以添加敌人AI行为
+4. 可以添加音效和特效

@@ -33,6 +33,9 @@ public class PlayerAbilityManager : MonoBehaviour
     private List<GameObject> hiddenGroundObjects = new List<GameObject>();
     private List<GameObject> hiddenTrapObjects = new List<GameObject>();
     
+    // 存储隐藏书本怪的引用
+    private List<HiddenBookEnemy> hiddenBookEnemies = new List<HiddenBookEnemy>();
+    
     // 事件
     public System.Action<bool> OnRepairVisionToggled; // 修复视觉切换事件
     
@@ -111,6 +114,9 @@ public class PlayerAbilityManager : MonoBehaviour
         Debug.Log("开始隐藏阻碍墙...");
         HideObstacleWalls();
         
+        // 更新隐藏书本怪的可见性
+        UpdateHiddenBookEnemiesVisibility();
+        
         // 应用视觉效果
         ApplyRepairVisionEffect();
         
@@ -137,6 +143,9 @@ public class PlayerAbilityManager : MonoBehaviour
         
         // 恢复阻碍墙
         ShowObstacleWalls();
+        
+        // 更新隐藏书本怪的可见性
+        UpdateHiddenBookEnemiesVisibility();
         
         // 移除视觉效果
         RemoveRepairVisionEffect();
@@ -514,11 +523,52 @@ public class PlayerAbilityManager : MonoBehaviour
             // 恢复阻碍墙
             ShowObstacleWalls();
             
+            // 更新隐藏书本怪的可见性
+            UpdateHiddenBookEnemiesVisibility();
+            
             // 移除视觉效果
             RemoveRepairVisionEffect();
             
             // 触发事件
             OnRepairVisionToggled?.Invoke(false);
+        }
+    }
+    
+    /// <summary>
+    /// 注册隐藏书本怪
+    /// </summary>
+    public void RegisterHiddenBookEnemy(HiddenBookEnemy hiddenBookEnemy)
+    {
+        if (hiddenBookEnemy != null && !hiddenBookEnemies.Contains(hiddenBookEnemy))
+        {
+            hiddenBookEnemies.Add(hiddenBookEnemy);
+            Debug.Log($"PlayerAbilityManager: 注册隐藏书本怪 - {hiddenBookEnemy.name}");
+        }
+    }
+    
+    /// <summary>
+    /// 取消注册隐藏书本怪
+    /// </summary>
+    public void UnregisterHiddenBookEnemy(HiddenBookEnemy hiddenBookEnemy)
+    {
+        if (hiddenBookEnemy != null && hiddenBookEnemies.Contains(hiddenBookEnemy))
+        {
+            hiddenBookEnemies.Remove(hiddenBookEnemy);
+            Debug.Log($"PlayerAbilityManager: 取消注册隐藏书本怪 - {hiddenBookEnemy.name}");
+        }
+    }
+    
+    /// <summary>
+    /// 更新所有隐藏书本怪的可见性
+    /// </summary>
+    public void UpdateHiddenBookEnemiesVisibility()
+    {
+        foreach (HiddenBookEnemy hiddenBookEnemy in hiddenBookEnemies)
+        {
+            if (hiddenBookEnemy != null)
+            {
+                hiddenBookEnemy.OnRepairVisionToggled(isRepairVisionActive);
+            }
         }
     }
     
@@ -537,5 +587,8 @@ public class PlayerAbilityManager : MonoBehaviour
         {
             playerStatus.OnMentalHealthDepleted -= OnMentalHealthDepleted;
         }
+        
+        // 清空隐藏书本怪列表
+        hiddenBookEnemies.Clear();
     }
 }

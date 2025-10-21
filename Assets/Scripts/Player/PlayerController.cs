@@ -119,6 +119,31 @@ public class PlayerController : MonoBehaviour
         Move();
     }
     
+    /// <summary>
+    /// 碰撞检测 - 处理与敌人的接触
+    /// </summary>
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        // 检查是否接触到敌人
+        if (other.CompareTag("Enemy"))
+        {
+            Debug.Log($"玩家接触到敌人: {other.name}");
+            // 这里可以添加接触效果，但不会阻止移动
+        }
+    }
+    
+    /// <summary>
+    /// 碰撞检测 - 处理与敌人的持续接触
+    /// </summary>
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        // 检查是否持续接触敌人
+        if (other.CompareTag("Enemy"))
+        {
+            // 这里可以添加持续接触效果，但不会阻止移动
+        }
+    }
+    
     private void GetInput()
     {
         // 获取水平输入
@@ -418,12 +443,43 @@ public class PlayerController : MonoBehaviour
     {
         if (animator != null)
         {
-            // 设置死亡动画参数
-            animator.SetBool("IsDead", true);
-            animator.SetTrigger("Death");
+            // 检查动画参数是否存在，避免运行时错误
+            if (HasAnimatorParameter("IsDead"))
+            {
+                animator.SetBool("IsDead", true);
+            }
+            if (HasAnimatorParameter("Death"))
+            {
+                animator.SetTrigger("Death");
+            }
             
             Debug.Log("播放死亡动画");
         }
+    }
+    
+    /// <summary>
+    /// 检查Animator是否有指定参数
+    /// </summary>
+    private bool HasAnimatorParameter(string paramName)
+    {
+        if (animator == null)
+            return false;
+        
+        try
+        {
+            foreach (AnimatorControllerParameter param in animator.parameters)
+            {
+                if (param != null && param.name == paramName)
+                    return true;
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"检查Animator参数时出错: {e.Message}");
+            return false;
+        }
+        
+        return false;
     }
     
     /// <summary>

@@ -139,6 +139,68 @@ public class PoolManager : MonoBehaviour
         pools[poolName].GetPoolInfo(out int available, out int active);
         Debug.Log($"对象池 {poolName} - 可用: {available}, 活动: {active}");
     }
+    
+    /// <summary>
+    /// 检查对象池是否存在
+    /// </summary>
+    public bool PoolExists(string poolName)
+    {
+        return pools.ContainsKey(poolName);
+    }
+    
+    /// <summary>
+    /// 创建书本怪对象池
+    /// </summary>
+    public void CreateBookEnemyPools(GameObject bookEnemyPrefab, GameObject hiddenBookEnemyPrefab, int initialSize = 10, int maxSize = 30)
+    {
+        if (bookEnemyPrefab != null)
+        {
+            CreatePool("BookEnemy", bookEnemyPrefab, initialSize, maxSize);
+        }
+        
+        if (hiddenBookEnemyPrefab != null)
+        {
+            CreatePool("HiddenBookEnemy", hiddenBookEnemyPrefab, initialSize, maxSize);
+        }
+    }
+    
+    /// <summary>
+    /// 生成书本怪
+    /// </summary>
+    public GameObject SpawnBookEnemy(Vector3 position, BookEnemyData enemyData)
+    {
+        GameObject bookEnemy = Spawn("BookEnemy", position, Quaternion.identity);
+        if (bookEnemy != null)
+        {
+            BookEnemy bookEnemyScript = bookEnemy.GetComponent<BookEnemy>();
+            if (bookEnemyScript != null)
+            {
+                bookEnemyScript.SetEnemyData(enemyData);
+                bookEnemyScript.SetPoolInfo("BookEnemy", true);
+                bookEnemyScript.ResetEnemy();
+            }
+        }
+        return bookEnemy;
+    }
+    
+    /// <summary>
+    /// 生成隐藏书本怪
+    /// </summary>
+    public GameObject SpawnHiddenBookEnemy(Vector3 position, BookEnemyData enemyData)
+    {
+        GameObject hiddenBookEnemy = Spawn("HiddenBookEnemy", position, Quaternion.identity);
+        if (hiddenBookEnemy != null)
+        {
+            HiddenBookEnemy hiddenBookEnemyScript = hiddenBookEnemy.GetComponent<HiddenBookEnemy>();
+            if (hiddenBookEnemyScript != null)
+            {
+                hiddenBookEnemyScript.SetEnemyData(enemyData);
+                hiddenBookEnemyScript.SetPoolInfo("HiddenBookEnemy", true);
+                hiddenBookEnemyScript.ResetEnemy();
+            }
+        }
+        return hiddenBookEnemy;
+    }
 }
 
 
